@@ -1,4 +1,4 @@
-name: Build .NET Desktop App
+name: Build CS2 Plugin
 
 on:
   push:
@@ -17,20 +17,30 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '8.0.x'  # Cambiá si usás otra versión
+        dotnet-version: '8.0.x'  # Asegurate de usar la versión que uses para el plugin
 
     - name: Restore dependencies
       run: dotnet restore
 
-    - name: Build the solution
+    - name: Build the plugin
       run: dotnet build --configuration Release --no-restore
 
-    - name: Create ZIP with build
+    - name: Zip only the plugin output files
       run: |
-        $OutputPath = Get-ChildItem -Path . -Recurse -Directory -Filter "net*" | Where-Object { $_.FullName -like "*\\bin\\Release\\net*" } | Select-Object -First 1
-        Compress-Archive -Path "$($OutputPath.FullName)\*" -DestinationPath "EmptyServerMapRotator.zip"
+        $output = Get-ChildItem -Recurse -Filter "EmptyServerMapRotator.dll" | Where-Object { $_.FullName -like "*\bin\Release\net*" } | Select-Object -First 1
+        if ($output) {
+          $folder = Split-Path $output.FullName
+          Compress-Archive -Path @(
+            "$folder\EmptyServerMapRotator.dll",
+            "$folder\EmptyServerMapRotator.pdb",
+            "$folder\EmptyServerMapRotator.deps.json"
+          ) -DestinationPath EmptyServerMapRotator.zip
+        } else {
+          Write-Error "No se encontró el archivo compilado."
+          exit 1
+        }
 
-    - name: Upload ZIP artifact
+    - name: Upload plugin zip
       uses: actions/upload-artifact@v4
       with:
         name: EmptyServerMapRotator
