@@ -1,0 +1,37 @@
+name: Build .NET Desktop App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'  # Cambiá si usás otra versión
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build the solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Create ZIP with build
+      run: |
+        $OutputPath = Get-ChildItem -Path . -Recurse -Directory -Filter "net*" | Where-Object { $_.FullName -like "*\\bin\\Release\\net*" } | Select-Object -First 1
+        Compress-Archive -Path "$($OutputPath.FullName)\*" -DestinationPath "EmptyServerMapRotator.zip"
+
+    - name: Upload ZIP artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: EmptyServerMapRotator
+        path: EmptyServerMapRotator.zip
